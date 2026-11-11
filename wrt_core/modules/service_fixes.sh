@@ -77,11 +77,6 @@ update_script_priority() {
     if [ -d "${pbuf_path%/*}" ] && [ -f "$pbuf_path" ]; then
         sed -i 's/START=.*/START=89/g' "$pbuf_path"
     fi
-
-    local mosdns_path="$(get_custom_feed_package_dir)/luci-app-mosdns/root/etc/init.d/mosdns"
-    if [ -d "${mosdns_path%/*}" ] && [ -f "$mosdns_path" ]; then
-        sed -i 's/START=.*/START=94/g' "$mosdns_path"
-    fi
 }
 
 
@@ -201,6 +196,11 @@ fix_netfilter_kmod_clash() {
     if grep -q 'DEPENDS:=+(!LINUX_6_12&&!LINUX_6_18):kmod-iptables' "$netfilter_mk"; then
         echo "Normalizing netfilter kmod clash workaround expression..."
         sed -i 's/DEPENDS:=+(!LINUX_6_12\&\&!LINUX_6_18):kmod-iptables/DEPENDS:=+(!(LINUX_6_12||LINUX_6_18)):kmod-iptables/' "$netfilter_mk"
+    fi
+
+    if grep -q 'DEPENDS:=+kmod-iptables' "$netfilter_mk"; then
+        echo "Applying netfilter kmod clash workaround for Linux 6.12/6.18..."
+        sed -i 's/DEPENDS:=+kmod-iptables/DEPENDS:=+(!(LINUX_6_12||LINUX_6_18)):kmod-iptables/' "$netfilter_mk"
     fi
 
     if grep -q 'DEPENDS:=+(!(LINUX_6_12||LINUX_6_18)):kmod-iptables' "$netfilter_mk"; then

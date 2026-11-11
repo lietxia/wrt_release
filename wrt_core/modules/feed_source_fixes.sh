@@ -11,7 +11,7 @@ remove_unwanted_packages() {
     )
     local packages_net=(
         "haproxy" "xray-core" "xray-plugin" "dns2socks" "alist" "hysteria"
-        "mosdns" "adguardhome" "ddns-go" "naiveproxy" "shadowsocks-rust"
+        "adguardhome" "ddns-go" "naiveproxy" "shadowsocks-rust"
         "sing-box" "v2ray-core" "v2ray-geodata" "v2ray-plugin" "tuic-client"
         "chinadns-ng" "ipt2socks" "tcping" "trojan-plus" "simple-obfs" "shadowsocksr-libev"
         "dae" "daed" "mihomo" "geoview" "msd_lite"
@@ -123,7 +123,7 @@ update_lucky() {
     fi
 
     echo "正在更新 lucky Makefile..."
-    local patch_line="\\t[ -f \$(TOPDIR)/../wrt_core/patches/lucky_${version}_Linux_\$(LUCKY_ARCH)_wanji.tar.gz ] && install -Dm644 \$(TOPDIR)/../wrt_core/patches/lucky_${version}_Linux_\$(LUCKY_ARCH)_wanji.tar.gz \$(PKG_BUILD_DIR)/\$(PKG_NAME)_\$(PKG_VERSION)_Linux_\$(LUCKY_ARCH).tar.gz"
+    local patch_line="\\t[ -f \$(TOPDIR)/../wrt_core/patches/lucky_${version}_Linux_\$(LUCKY_ARCH)_wanji.tar.gz ] && install -Dm644 \$(TOPDIR)/../wrt_core/patches/lucky_${version}_Linux_\$(LUCKY_ARCH)_wanji.tar.gz \$(DL_DIR)/\$(PKG_SOURCE)"
 
     if grep -q "Build/Prepare" "$makefile_path"; then
         sed -i "/Build\\/Prepare/a\\$patch_line" "$makefile_path"
@@ -159,14 +159,6 @@ fix_mkpkg_format_invalid() {
         if [ -f "$custom_feed_worktree_dir/luci-app-openclash/Makefile" ]; then
             sed -i 's/PKG_RELEASE:=beta/PKG_RELEASE:=1/g' "$custom_feed_worktree_dir/luci-app-openclash/Makefile"
         fi
-        if [ -f "$custom_feed_worktree_dir/luci-app-quickstart/Makefile" ]; then
-            sed -i 's/PKG_VERSION:=0\.8\.16-1/PKG_VERSION:=0\.8\.16/g' "$custom_feed_worktree_dir/luci-app-quickstart/Makefile"
-            sed -i 's/PKG_RELEASE:=$/PKG_RELEASE:=1/g' "$custom_feed_worktree_dir/luci-app-quickstart/Makefile"
-        fi
-        if [ -f "$custom_feed_worktree_dir/luci-app-store/Makefile" ]; then
-            sed -i 's/PKG_VERSION:=0\.1\.27-1/PKG_VERSION:=0\.1\.27/g' "$custom_feed_worktree_dir/luci-app-store/Makefile"
-            sed -i 's/PKG_RELEASE:=$/PKG_RELEASE:=1/g' "$custom_feed_worktree_dir/luci-app-store/Makefile"
-        fi
     fi
 }
 
@@ -185,51 +177,26 @@ update_tcping() {
 }
 
 
-apply_passwall_tweaks() {
-    local chnlist_path="$(get_custom_feed_worktree_dir)/luci-app-passwall/root/usr/share/passwall/rules/chnlist"
-    if [ -f "$chnlist_path" ]; then
-        >"$chnlist_path"
-    fi
+fix_netwiz_permissions() {
+    local package_dir="$(get_custom_feed_worktree_dir)/luci-app-netwiz"
+    local relative_path
+    local executable_files=(
+        root/usr/libexec/rpcd/netwiz root/usr/libexec/rpcd/netwiz_dev
+        root/usr/libexec/netwiz-autodetect.sh root/usr/libexec/netwiz-monitor-loop.sh
+        root/etc/init.d/netwiz-monitor root/etc/init.d/netwiz-recovery
+        root/etc/init.d/netwiz-watchdog root/etc/hotplug.d/dhcp/99-netwiz-guard
+    )
 
-    local xray_util_path="$(get_custom_feed_worktree_dir)/luci-app-passwall/luasrc/passwall/util_xray.lua"
-    if [ -f "$xray_util_path" ]; then
-        sed -i 's/maxRTT = "1s"/maxRTT = "2s"/g' "$xray_util_path"
-        sed -i 's/sampling = 3/sampling = 5/g' "$xray_util_path"
-    fi
-}
-
-
-update_mosdns_deconfig() {
-    local mosdns_conf="$(get_custom_feed_worktree_dir)/luci-app-mosdns/root/etc/config/mosdns"
-    if [ -d "${mosdns_conf%/*}" ] && [ -f "$mosdns_conf" ]; then
-        sed -i 's/8000/300/g' "$mosdns_conf"
-        sed -i 's/5335/5336/g' "$mosdns_conf"
-    fi
-}
-
-
-fix_quickstart() {
-    local file_path="$(get_custom_feed_worktree_dir)/luci-app-quickstart/luasrc/controller/istore_backend.lua"
-    local makefile_path="$(get_custom_feed_worktree_dir)/quickstart/Makefile"
-    local url="https://gist.githubusercontent.com/puteulanus/1c180fae6bccd25e57eb6d30b7aa28aa/raw/istore_backend.lua"
-    if [ -f "$file_path" ]; then
-        echo "正在修复 quickstart..."
-        if ! curl_retry -fsSL -o "$file_path" "$url"; then
-            echo "错误：从 $url 下载 istore_backend.lua 失败" >&2
-            exit 1
+    for relative_path in "${executable_files[@]}"; do
+        if [ ! -f "$package_dir/$relative_path" ]; then
+            echo "错误：luci-app-netwiz 执行文件不存在：$package_dir/$relative_path" >&2
+            return 1
         fi
-    fi
-
-    if [ -f "$makefile_path" ]; then
-        echo "正在移除 quickstart 非必要存储依赖..."
-        sed -i \
-            -e '/^[[:space:]]*DEPENDS:=/,/^[[:space:]]*URL:=/ s/[[:space:]]*+smartmontools-drivedb//g' \
-            -e '/^[[:space:]]*DEPENDS:=/,/^[[:space:]]*URL:=/ s/[[:space:]]*+smartmontools//g' \
-            -e '/^[[:space:]]*DEPENDS:=/,/^[[:space:]]*URL:=/ s/[[:space:]]*+mdadm//g' \
-            -e '/^[[:space:]]*DEPENDS:=/,/^[[:space:]]*URL:=/ s/[[:space:]]*+parted//g' \
-            -e '/^[[:space:]]*DEPENDS:=/,/^[[:space:]]*URL:=/ s/[[:space:]]*+e2fsprogs//g' \
-            "$makefile_path"
-    fi
+        if ! chmod 755 "$package_dir/$relative_path"; then
+            echo "错误：无法设置 luci-app-netwiz 执行权限：$package_dir/$relative_path" >&2
+            return 1
+        fi
+    done
 }
 
 

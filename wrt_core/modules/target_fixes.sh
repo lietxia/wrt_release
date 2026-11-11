@@ -2,12 +2,11 @@
 # target、kernel 与 base system 源码修正。
 
 fix_default_set() {
-    # 注入默认主题、系统设置和目标平台通用补丁。
+    # 替换默认主题依赖，并注入系统设置和目标平台通用补丁。
     if [ -d "$BUILD_DIR/feeds/luci/collections/" ]; then
         find "$BUILD_DIR/feeds/luci/collections/" -type f -name "Makefile" -exec sed -i "s/luci-theme-bootstrap/luci-theme-$THEME_SET/g" {} \;
     fi
 
-    install -Dm544 "$BASE_PATH/patches/990_set_argon_primary" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/990_set_argon_primary"
     install -Dm544 "$BASE_PATH/patches/991_custom_settings" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/991_custom_settings"
     install -Dm544 "$BASE_PATH/patches/992_set-wifi-uci.sh" "$BUILD_DIR/package/base-files/files/etc/uci-defaults/992_set-wifi-uci.sh"
 
@@ -22,8 +21,20 @@ fix_default_set() {
 fix_miniupnpd() {
     local miniupnpd_dir="$BUILD_DIR/feeds/packages/net/miniupnpd"
     local patch_file="999-chanage-default-leaseduration.patch"
+    local upstream_repo="https://github.com/immortalwrt/packages.git"
+    local upstream_branch="openwrt-25.12"
 
     if [ -d "$miniupnpd_dir" ] && [ -f "$BASE_PATH/patches/$patch_file" ]; then
+        if ! sync_sparse_packages_to_feed_dir \
+            "$upstream_repo" \
+            "$upstream_branch" \
+            "$BUILD_DIR/feeds/packages" \
+            "immortalwrt/packages" \
+            "net/miniupnpd"; then
+            echo "错误：同步 miniupnpd 到 $upstream_branch 分支失败" >&2
+            return 1
+        fi
+
         install -Dm644 "$BASE_PATH/patches/$patch_file" "$miniupnpd_dir/patches/$patch_file"
     fi
 }
@@ -97,34 +108,6 @@ update_affinity_script() {
         find "$affinity_script_dir" -name "smp_affinity" -exec rm -f {} \;
         install -Dm755 "$BASE_PATH/patches/smp_affinity" "$affinity_script_dir/base-files/etc/init.d/smp_affinity"
     fi
-}
-
-
-fix_hash_value() {
-    local makefile_path="$1"
-    local old_hash="$2"
-    local new_hash="$3"
-    local package_name="$4"
-
-    if [ -f "$makefile_path" ]; then
-        sed -i "s/$old_hash/$new_hash/g" "$makefile_path"
-        echo "已修正 $package_name 的哈希值。"
-    fi
-}
-
-
-apply_hash_fixes() {
-    fix_hash_value \
-        "$BUILD_DIR/package/feeds/packages/smartdns/Makefile" \
-        "860a816bf1e69d5a8a2049483197dbebe8a3da2c9b05b2da68c85ef7dee7bdde" \
-        "582021891808442b01f551bc41d7d95c38fb00c1ec78a58ac3aaaf898fbd2b5b" \
-        "smartdns"
-
-    fix_hash_value \
-        "$BUILD_DIR/package/feeds/packages/smartdns/Makefile" \
-        "320c99a65ca67a98d11a45292aa99b8904b5ebae5b0e17b302932076bf62b1ec" \
-        "43e58467690476a77ce644f9dc246e8a481353160644203a1bd01eb09c881275" \
-        "smartdns"
 }
 
 

@@ -72,18 +72,20 @@ GitHub Actions 的手动构建也提供 `add_fragments` 与 `remove_fragments` �
 | 京东云 | 百里 / AX6000 | `jdcloud_ax6000_immwrt` |
 | 阿里云 | AP8220 | `aliyun_ap8220_immwrt` |
 | 阿里云 | AP8220 - LiBwrt | `aliyun_ap8220_libwrt` |
-| Linksys | MX4200v1、MX4200v2、MX4300 | `linksys_mx4x00_immwrt` |
+| Linksys | MX4200v1、MX4200v2、MX4300 | `linksys_mx4x00_libwrt` |
 | Link | NN6000v2 | `link_nn6000v2_immwrt` |
 | 奇虎 | 360v6 | `qihoo_360v6_immwrt` |
 | 红米 | AX5 | `redmi_ax5_immwrt` |
 | 红米 | AX6 | `redmi_ax6_immwrt` |
 | 红米 | AX6 - LiBwrt | `redmi_ax6_libwrt` |
-| 红米 | AX6000 | `redmi_ax6000_immwrt21` |
 | CMCC（中国移动） | RAX3000M | `cmcc_rax3000m_immwrt` |
+| Cudy | TR3000 | `cudy_tr3000_immwrt` |
 | 斐讯 | N1 | `n1_immwrt` |
 | 兆能 | M2 | `zn_m2_immwrt` |
 | 兆能 | M2 - LiBwrt | `zn_m2_libwrt` |
 | Gemtek | W1701K | `gemtek_w1701k_immwrt` |
+| SuperGateway | S20M | `supergateway_s20m_immwrt` |
+| Nokia | XG-040G-MD UBI | `nokia_040g_immwrt` |
 | x86 | X64 | `x64_immwrt` |
 
 示例：
